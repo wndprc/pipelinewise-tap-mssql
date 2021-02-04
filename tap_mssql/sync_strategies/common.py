@@ -166,6 +166,9 @@ def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version
             stream_metadata = md_map.get((), {})
             replication_method = stream_metadata.get("replication-method")
 
+            #Get the definition for replication-keys-coalesce if exists.
+            replication_keys_coalesce = stream_metadata.get("replication-keys-coalesce")
+
             if replication_method in {"FULL_TABLE", "LOG_BASED"}:
                 key_properties = get_key_properties(catalog_entry)
 
@@ -188,12 +191,22 @@ def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version
                         state, catalog_entry.tap_stream_id, "replication_key", replication_key
                     )
 
+                    #If the replication_keys_coalesce is defined, use the 
+                    #first value that is not null.
+                    if replication_keys_coalesce is not None:
+                        for replication_key_current in replication_keys_coalesce:
+                            replication_key_for_value = replication_key_current
+                            if record_message.record[replication_key_current] is not None:
+                                break
+                    else: replication_key_for_value = replication_key
+                        
                     state = singer.write_bookmark(
                         state,
                         catalog_entry.tap_stream_id,
                         "replication_key_value",
-                        record_message.record[replication_key],
+                        record_message.record[replication_key_for_value],
                     )
+
             if rows_saved % 1000 == 0:
                 singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 

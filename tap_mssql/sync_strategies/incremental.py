@@ -25,6 +25,9 @@ def sync_table(mssql_conn, config, catalog_entry, state, columns):
         state, catalog_entry.tap_stream_id, "replication_key"
     )
 
+    #Get the definition for replication-keys-coalesce if exists.
+    replication_keys_coalesce = stream_metadata.get("replication-keys-coalesce")
+
     replication_key_value = None
 
     if replication_key_metadata == replication_key_state:
@@ -55,9 +58,15 @@ def sync_table(mssql_conn, config, catalog_entry, state, columns):
                 if catalog_entry.schema.properties[replication_key_metadata].format == "date-time":
                     replication_key_value = pendulum.parse(replication_key_value)
 
-                select_sql += " WHERE \"{}\" >= %(replication_key_value)s ORDER BY \"{}\" ASC".format(
-                    replication_key_metadata, replication_key_metadata
-                )
+                #Prepare the SQL query using the coalesce keys.  
+                if replication_keys_coalesce is not None:
+                    select_sql += " WHERE coalesce(\"{}\") >= %(replication_key_value)s ORDER BY coalesce(\"{}\") ASC".format(
+                        "\",\"".join(replication_keys_coalesce), "\",\"".join(replication_keys_coalesce)
+                    )                    
+                else:
+                    select_sql += " WHERE \"{}\" >= %(replication_key_value)s ORDER BY \"{}\" ASC".format(
+                        replication_key_metadata, replication_key_metadata
+                    )
 
                 params["replication_key_value"] = replication_key_value
             elif replication_key_metadata is not None:

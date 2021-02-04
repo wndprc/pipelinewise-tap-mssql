@@ -63,8 +63,12 @@ STRING_TYPES = set(
     ]
 )
 
-BYTES_FOR_INTEGER_TYPE = {
+#In SQL Server tinyint is unsigned.
+BYTES_FOR_UNSIGNED_INTEGER_TYPE = {
     "tinyint": 1,
+}
+
+BYTES_FOR_INTEGER_TYPE = {
     "smallint": 2,
     "mediumint": 3,
     "int": 4,
@@ -93,6 +97,13 @@ def schema_for_column(c):
     if data_type == "bit":
         result.type = ["null", "boolean"]
 
+    #In SQL Server tinyint is unsigned.  
+    elif data_type in BYTES_FOR_UNSIGNED_INTEGER_TYPE:
+        result.type = ["null", "integer"]
+        bits = BYTES_FOR_UNSIGNED_INTEGER_TYPE[data_type] * 8
+        result.minimum = 0
+        result.maximum = 2 ** bits - 1
+        
     elif data_type in BYTES_FOR_INTEGER_TYPE:
         result.type = ["null", "integer"]
         bits = BYTES_FOR_INTEGER_TYPE[data_type] * 8
