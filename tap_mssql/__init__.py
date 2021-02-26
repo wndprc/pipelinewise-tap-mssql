@@ -60,6 +60,7 @@ STRING_TYPES = set(
         "uniqueidentifier",
         "nvarchar",
         "nchar",
+        "xml",
     ]
 )
 
@@ -72,13 +73,14 @@ BYTES_FOR_INTEGER_TYPE = {
     "smallint": 2,
     "mediumint": 3,
     "int": 4,
-    "real": 4,
     "bigint": 8,
 }
 
-FLOAT_TYPES = set(["float", "double", "money"])
+FLOAT_TYPES = set(["double", "float", "real"])
 
-DATETIME_TYPES = set(["datetime", "timestamp", "date", "time", "smalldatetime"])
+PRECISE_NUMERIC_TYPES = set(["decimal", "numeric", "money", "smallmoney"])
+
+DATETIME_TYPES = set(["datetime", "datetime2", "datetimeoffset", "timestamp", "date", "time", "smalldatetime"])
 
 VARIANT_TYPES = set(["json"])
 
@@ -113,14 +115,15 @@ def schema_for_column(c):
     elif data_type in FLOAT_TYPES:
         result.type = ["null", "number"]
 
-    elif data_type in ["decimal", "numeric"]:
+    elif data_type in PRECISE_NUMERIC_TYPES:
         result.type = ["null", "number"]
         result.multipleOf = 10 ** (0 - c.numeric_scale)
         return result
 
     elif data_type in STRING_TYPES:
         result.type = ["null", "string"]
-        result.maxLength = c.character_maximum_length
+        if c.character_maximum_length is not None and c.character_maximum_length > 0:
+            result.maxLength = c.character_maximum_length
 
     elif data_type in DATETIME_TYPES:
         result.type = ["null", "string"]
