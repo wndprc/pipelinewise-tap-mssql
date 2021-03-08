@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# pylint: disable=missing-docstring,not-an-iterable,too-many-locals,too-many-arguments,too-many-branches,invalid-name,duplicate-code,too-many-statements
+
 import datetime
 import collections
 import itertools

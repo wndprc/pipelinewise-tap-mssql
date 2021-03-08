@@ -207,7 +207,8 @@ def sync_query(cursor, catalog_entry, state, select_sql, columns, stream_version
                         record_message.record[replication_key_for_value],
                     )
 
-            if rows_saved % 1000 == 0:
+            #On a FULL_TABLE, do not update the state until the whole table has completed.
+            if rows_saved % 1000 == 0 and replication_method != "FULL_TABLE":
                 singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
             row = cursor.fetchone()
